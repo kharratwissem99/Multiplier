@@ -5,7 +5,7 @@ module tb_vector_mul_simple;
   // Config
   // ---------------------------------------------------------------------------
   localparam time CLK_PERIOD = 10ns;
-  localparam int  LATENCY    = 0;      // expected DUT latency in cycles (per comment in DUT)
+  localparam int  LATENCY    = 1;      // expected DUT latency in cycles
   localparam int  N_RANDOM   = 2000;
 
   // ---------------------------------------------------------------------------
@@ -73,8 +73,6 @@ module tb_vector_mul_simple;
         exp_a_pipe[i]     <= '0;
         exp_b_pipe[i]     <= '0;
       end
-      n_checked <= 0;
-      n_errors  <= 0;
     end else begin
       // Build the *next* expected pipeline state using blocking assignments.
       // We compare DUT outputs against this next-state, so LATENCY=0 works
@@ -95,25 +93,6 @@ module tb_vector_mul_simple;
       next_a_pipe[0]     = in_a_i;
       next_b_pipe[0]     = in_b_i;
 
-      // Check DUT output vs expected stage
-      if (out_valid_o !== next_valid_pipe[LATENCY]) begin
-        n_errors <= n_errors + 1;
-        $display("[%0t] ERROR: out_valid_o=%0b expected=%0b",
-                 $time, out_valid_o, next_valid_pipe[LATENCY]);
-      end
-
-      if (out_valid_o) begin
-        n_checked <= n_checked + 1;
-        if (out_result_o !== next_data_pipe[LATENCY]) begin
-          n_errors <= n_errors + 1;
-          $display("[%0t] ERROR: mismatch a=%0d (0x%08h) b=%0d (0x%08h)",
-                   $time, next_a_pipe[LATENCY], next_a_pipe[LATENCY],
-                   next_b_pipe[LATENCY], next_b_pipe[LATENCY]);
-          $display("             got=%0d (0x%016h) exp=%0d (0x%016h)",
-                   out_result_o, out_result_o, next_data_pipe[LATENCY], next_data_pipe[LATENCY]);
-        end
-      end
-
       // Commit next expected pipeline state
       for (int i = 0; i <= LATENCY; i++) begin
         exp_valid_pipe[i] <= next_valid_pipe[i];
@@ -124,13 +103,49 @@ module tb_vector_mul_simple;
     end
   end
 
+  // Race-free checking: sample after DUT updates (NBA) at the same clock edge.
+  always @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      n_checked <= 0;
+      n_errors  <= 0;
+    end else begin
+      int unsigned errors_inc;
+      int unsigned checked_inc;
+      errors_inc  = 0;
+      checked_inc = 0;
+
+      #1step;
+      if (out_valid_o !== exp_valid_pipe[LATENCY]) begin
+        errors_inc++;
+        $display("[%0t] ERROR: out_valid_o=%0b expected=%0b",
+                 $time, out_valid_o, exp_valid_pipe[LATENCY]);
+      end
+
+      if (out_valid_o) begin
+        checked_inc++;
+        if (out_result_o !== exp_data_pipe[LATENCY]) begin
+          errors_inc++;
+          $display("[%0t] ERROR: mismatch a=%0d (0x%08h) b=%0d (0x%08h)",
+                   $time, exp_a_pipe[LATENCY], exp_a_pipe[LATENCY],
+                   exp_b_pipe[LATENCY], exp_b_pipe[LATENCY]);
+          $display("             got=%0d (0x%016h) exp=%0d (0x%016h)",
+                   out_result_o, out_result_o, exp_data_pipe[LATENCY], exp_data_pipe[LATENCY]);
+        end
+      end
+
+      n_checked <= n_checked + checked_inc;
+      n_errors  <= n_errors + errors_inc;
+    end
+  end
+
   // ---------------------------------------------------------------------------
   // Stimulus helpers
   // ---------------------------------------------------------------------------
   task automatic apply_vec(input logic signed [31:0] a,
                            input logic signed [31:0] b,
                            input logic v);
-    @(negedge clk_i);
+    // Drive synchronous to rising edge (like signals coming from flops).
+    @(posedge clk_i);
     in_a_i     <= a;
     in_b_i     <= b;
     in_valid_i <= v;
@@ -153,35 +168,33 @@ module tb_vector_mul_simple;
     do_reset();
 
     // Directed tests
-    apply_vec(32'sd0,  32'sd0,  1'b1); @(posedge clk_i);
-    apply_vec(32'sd1,  32'sd0,  1'b1); @(posedge clk_i);
-    apply_vec(32'sd0,  32'sd1,  1'b1); @(posedge clk_i);
-    apply_vec(32'sd1,  32'sd1,  1'b1); @(posedge clk_i);
-    apply_vec(-32'sd1, 32'sd1,  1'b1); @(posedge clk_i);
-    apply_vec(32'sd1,  -32'sd1, 1'b1); @(posedge clk_i);
-    apply_vec(-32'sd1, -32'sd1, 1'b1); @(posedge clk_i);
+    apply_vec(32'sd0,  32'sd0,  1'b1);
+    apply_vec(32'sd1,  32'sd0,  1'b1);
+    apply_vec(32'sd0,  32'sd1,  1'b1);
+    apply_vec(32'sd1,  32'sd1,  1'b1);
+    apply_vec(-32'sd1, 32'sd1,  1'b1);
+    apply_vec(32'sd1,  -32'sd1, 1'b1);
+    apply_vec(-32'sd1, -32'sd1, 1'b1);
 
-    apply_vec(32'sh7fffffff, 32'sd2, 1'b1); @(posedge clk_i);
-    apply_vec(32'sh80000000, 32'sd2, 1'b1); @(posedge clk_i);
-    apply_vec(32'sh80000000, -32'sd1, 1'b1); @(posedge clk_i);
-    apply_vec(32'sh7fffffff, 32'sh7fffffff, 1'b1); @(posedge clk_i);
-    apply_vec(32'sh80000000, 32'sh80000000, 1'b1); @(posedge clk_i);
+    apply_vec(32'sh7fffffff, 32'sd2, 1'b1);
+    apply_vec(32'sh80000000, 32'sd2, 1'b1);
+    apply_vec(32'sh80000000, -32'sd1, 1'b1);
+    apply_vec(32'sh7fffffff, 32'sh7fffffff, 1'b1);
+    apply_vec(32'sh80000000, 32'sh80000000, 1'b1);
 
     // Bubble
-    apply_vec(32'sd123, 32'sd456, 1'b0); @(posedge clk_i);
+    apply_vec(32'sd123, 32'sd456, 1'b0);
 
     // Random tests with occasional bubbles
     for (int k = 0; k < N_RANDOM; k++) begin
       logic v;
       v = ($urandom_range(0, 9) < 7); // ~70% valid
       apply_vec(rand_s32(), rand_s32(), v);
-      @(posedge clk_i);
     end
 
     // Drain pipeline
     for (int d = 0; d < (LATENCY + 5); d++) begin
       apply_vec('0, '0, 1'b0);
-      @(posedge clk_i);
     end
 
     $display("\nChecked outputs: %0d", n_checked);
