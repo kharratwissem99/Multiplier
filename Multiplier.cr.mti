@@ -1,0 +1,19 @@
+C:/Users/Wissem/OneDrive/Desktop/Multiplier/vector_mul_simple.sv {1 {vlog -work work -sv -stats=none C:/Users/Wissem/OneDrive/Desktop/Multiplier/vector_mul_simple.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module vector_mul_simple
+
+Top level modules:
+	vector_mul_simple
+
+} {} {}} C:/Users/Wissem/OneDrive/Desktop/Multiplier/vproc_mul_block.sv {2 {vlog -work work -sv -stats=none C:/Users/Wissem/OneDrive/Desktop/Multiplier/vproc_mul_block.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module vproc_mul_block
+** Warning: C:/Users/Wissem/OneDrive/Desktop/Multiplier/vproc_mul_block.sv(43): (vlog-2583) [SVCHK] - Some checking for conflicts with always_comb and always_latch variables not yet supported. Run vopt to provide additional design-level checks.
+** Warning: C:/Users/Wissem/OneDrive/Desktop/Multiplier/vproc_mul_block.sv(44): (vlog-2583) [SVCHK] - Some checking for conflicts with always_comb and always_latch variables not yet supported. Run vopt to provide additional design-level checks.
+** Warning: C:/Users/Wissem/OneDrive/Desktop/Multiplier/vproc_mul_block.sv(54): (vlog-2583) [SVCHK] - Some checking for conflicts with always_comb and always_latch variables not yet supported. Run vopt to provide additional design-level checks.
+** Warning: C:/Users/Wissem/OneDrive/Desktop/Multiplier/vproc_mul_block.sv(64): (vlog-2583) [SVCHK] - Some checking for conflicts with always_comb and always_latch variables not yet supported. Run vopt to provide additional design-level checks.
+
+Top level modules:
+	vproc_mul_block
+
+} {} {}}
