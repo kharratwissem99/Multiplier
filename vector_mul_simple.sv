@@ -126,21 +126,7 @@ module vector_mul_simple (
         mult_comb = pp_ll_64 + ((pp_hl_64 + pp_lh_64) <<< 16) + (pp_hh_64 <<< 32);
     end
 
-    // Option B: register outputs so the observable latency is exactly 2 cycles.
-    // Inputs are captured at cycle N, partial products at N+1, output at N+2.
-    // always_ff @(posedge clk_i or negedge rst_ni) begin
-    //     if (!rst_ni) begin
-    //         // out_valid_o  <= 1'b0;
-    //         out_result_o <= '0;
-    //     end else begin
-    //         // out_valid_o  <= in_valid_q2;
-    //         out_result_o <= in_valid_q2 ? mult_comb : '0;
-    //     end
-    // end
-
     assign out_valid_o = in_valid_q2;
     assign out_result_o = in_valid_q2 ? mult_comb : '0;
-
-// (old 1-cycle example kept removed)
 
 endmodule
